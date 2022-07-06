@@ -442,11 +442,14 @@ class MLP(nn.Module):
 
 
 def build(args):
-    num_classes = 20 if args.dataset_file != 'coco' else 91
-    if args.dataset_file == "coco_panoptic":
+    num_classes = 20
+    if args.dataset_file == 'coco':
+        num_classes = 91
+    elif args.dataset_file == "coco_panoptic":
         num_classes = 250
     elif args.dataset_file == "custom":
-        num_classes = 2
+        # with a default class value of 2, if num_classes is not specified
+        num_classes = args.num_classes or 2
     device = torch.device(args.device)
 
     backbone = build_backbone(args)
@@ -465,8 +468,8 @@ def build(args):
     if args.masks:
         model = DETRsegm(model, freeze_detr=(args.frozen_weights is not None))
     matcher = build_matcher(args)
-    weight_dict = {'loss_ce': args.cls_loss_coef, 'loss_bbox': args.bbox_loss_coef}
-    weight_dict['loss_giou'] = args.giou_loss_coef
+    weight_dict = {'loss_ce': args.cls_loss_coef, 'loss_bbox': args.bbox_loss_coef, 'loss_giou': args.giou_loss_coef}
+
     if args.masks:
         weight_dict["loss_mask"] = args.mask_loss_coef
         weight_dict["loss_dice"] = args.dice_loss_coef
@@ -474,9 +477,9 @@ def build(args):
     if args.aux_loss:
         aux_weight_dict = {}
         for i in range(args.dec_layers - 1):
-            aux_weight_dict.update({k + f'_{i}': v for k, v in weight_dict.items()})
-        aux_weight_dict.update({k + f'_enc': v for k, v in weight_dict.items()})
-        weight_dict.update(aux_weight_dict)
+            aux_weight_dict |= {f'{k}_{i}': v for k, v in weight_dict.items()}
+        aux_weight_dict.update({f'{k}_enc': v for k, v in weight_dict.items()})
+        weight_dict |= aux_weight_dict
 
     losses = ['labels', 'boxes', 'cardinality']
     if args.masks:

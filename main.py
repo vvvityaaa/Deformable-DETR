@@ -122,7 +122,8 @@ def get_args_parser():
     parser.add_argument('--eval', action='store_true')
     parser.add_argument('--num_workers', default=2, type=int)
     parser.add_argument('--cache_mode', default=False, action='store_true', help='whether to cache images on memory')
-
+    parser.add_argument('--num_classes', default=None, type=int,
+                        help='#classes in your custom dataset')
     return parser
 
 
